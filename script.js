@@ -243,7 +243,10 @@ class TransportSupportCalculator {
     }
 
     formatDate(date) {
-        return date.toISOString().split('T')[0];
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
     }
 
     formatDateTurkish(date) {
@@ -280,6 +283,9 @@ class TransportSupportCalculator {
         const workingDaysInMonth = this.getWorkingDaysInMonth();
         const validDaysForFull = Array.from(this.selectedDays.values()).filter(hours => hours >= 7.5).length;
         const hasLowHours = Array.from(this.selectedDays.values()).some(hours => hours < 7.5);
+        
+        // Calculate required days for full support (half of working days in month)
+        const requiredDaysForFull = Math.ceil(workingDaysInMonth / 2);
 
         // Debug logging
         console.log('Debug Payment Calculation:');
@@ -287,15 +293,17 @@ class TransportSupportCalculator {
         console.log('All hours:', Array.from(this.selectedDays.values()));
         console.log('Valid days for full (>=7.5):', validDaysForFull);
         console.log('Has low hours (<7.5):', hasLowHours);
+        console.log('Working days in month:', workingDaysInMonth);
+        console.log('Required days for full support:', requiredDaysForFull);
 
         // Basic support criteria: 4+ days AND 30+ hours
         const meetsBasicCriteria = selectedDays >= 4 && totalHours >= 30;
         
-        // Full support criteria: 11+ days with 7.5+ hours each
-        const meetsFullCriteria = validDaysForFull >= 11;
+        // Full support criteria: half of month's working days with 7.5+ hours each
+        const meetsFullCriteria = validDaysForFull >= requiredDaysForFull;
 
         console.log('Meets full criteria:', meetsFullCriteria);
-        console.log('validDaysForFull >= 11:', validDaysForFull >= 11);
+        console.log(`validDaysForFull >= requiredDaysForFull: ${validDaysForFull} >= ${requiredDaysForFull}`);
 
         let amount = 0;
         let type = 'Destek Yok';
@@ -317,7 +325,8 @@ class TransportSupportCalculator {
             totalHours,
             workingDaysInMonth,
             validDaysForFull,
-            hasLowHours
+            hasLowHours,
+            requiredDaysForFull
         };
     }
 
