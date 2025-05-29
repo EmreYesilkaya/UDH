@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Destek Hesaplama</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1><i class="fas fa-truck"></i> Destek Hesaplama</h1>
+            <p>Çalışma günlerini seçin ve saatlerinizi girin</p>
+            <div class="developer-credit">
+                <p><i class="fas fa-code"></i> Made by Stajyer Emre</p>
+                <div class="social-links">
+                    <a href="https://www.linkedin.com/in/emregit/" target="_blank" rel="noopener noreferrer">
+                        <i class="fab fa-linkedin"></i> LinkedIn
+                    </a>
+                    <a href="https://github.com/EmreYesilkaya" target="_blank" rel="noopener noreferrer">
+                        <i class="fab fa-github"></i> GitHub
+                    </a>
+                    <a href="https://medium.com/@emregithub" target="_blank" rel="noopener noreferrer">
+                        <i class="fab fa-medium"></i> Medium
+                    </a>
+                </div>
+            </div>
+        </header>
+
+        <!-- Calendar and Payment Layout -->
+        <div class="calendar-payment-layout">
+            <!-- Calendar Column -->
+            <div class="calendar-column">
+                <!-- Calendar Section -->
+                <div class="calendar-section">
+                    <div class="calendar-header">
+                        <button id="prevMonth" class="nav-button">
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+                        <h2 id="currentMonth"></h2>
+                        <button id="nextMonth" class="nav-button">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                    <div class="calendar-container">
+                        <div class="calendar-weekdays">
+                            <div class="weekday">Paz</div>
+                            <div class="weekday">Pzt</div>
+                            <div class="weekday">Sal</div>
+                            <div class="weekday">Çar</div>
+                            <div class="weekday">Per</div>
+                            <div class="weekday">Cum</div>
+                            <div class="weekday">Cmt</div>
+                        </div>
+                        <div id="calendar" class="calendar-grid"></div>
+                    </div>
+                </div>
+
+                <!-- Instructions -->
+                <div class="card">
+                    <h3><i class="fas fa-info-circle"></i> Kullanım Talimatları</h3>
+                    <ul class="instruction-list">
+                        <li><span class="icon working-day-icon"></span> Çalışma günlerine tıklayın</li>
+                        <li><span class="icon holiday-icon"></span> Resmi tatiller (seçilemez)</li>
+                        <li><span class="icon weekend-icon"></span> Hafta sonları (seçilemez)</li>
+                        <li><span class="icon selected-icon"></span> Seçilen çalışma günleri</li>
+                        <li><i class="fas fa-clock"></i> Her güne özel çalışma saati girebilirsiniz</li>
+                        <li><i class="fas fa-info-circle text-info"></i> Tam destek için sadece 7.5+ saat günler sayılır</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Payment Column -->
+            <div class="payment-column">
+                <!-- Statistics -->
+                <div class="card">
+                    <h3><i class="fas fa-chart-bar"></i> İstatistikler</h3>
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <div class="stat-value" id="selectedDays">0</div>
+                            <div class="stat-label">Seçilen Günler</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="totalHours">0</div>
+                            <div class="stat-label">Toplam Saat</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="workingDaysInMonth">0</div>
+                            <div class="stat-label">Ayın Çalışma Günleri</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="validDaysForFull">0</div>
+                            <div class="stat-label">Tam Desteğe Sayılan</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Payment Calculation -->
+                <div class="card">
+                    <h3><i class="fas fa-money-bill-wave"></i> Ödeme Hesaplama</h3>
+                    <div class="payment-result">
+                        <div class="criteria-check">
+                            <div class="check-item" id="basicCriteria">
+                                <i class="fas fa-times-circle"></i>
+                                <span>Temel Destek: 4+ gün ve 30+ saat (tüm saatler sayılır)</span>
+                            </div>
+                            <div class="check-item" id="fullCriteria">
+                                <i class="fas fa-times-circle"></i>
+                                <span>Tam Destek: 7.5+ saat çalışılan günlerin sayısı 11+ olmalı</span>
+                            </div>
+                        </div>
+                        <div class="amount-display">
+                            <div class="amount" id="paymentAmount">0 TL</div>
+                            <div class="amount-type" id="paymentType">Destek Yok</div>
+                        </div>
+                        <div id="lowHourWarning" class="warning-message" style="display: none;">
+                            <i class="fas fa-info-circle"></i>
+                            7.5 saat altı günler var! Bu günler temel desteğe sayılır ancak tam destek hesabında sayılmaz.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Payment Criteria -->
+                <div class="card">
+                    <h3><i class="fas fa-calculator"></i> Ödeme Kriterleri</h3>
+                    <div class="criteria">
+                        <div class="criteria-item">
+                            <h4>Temel Destek (3,000 TL)</h4>
+                            <ul>
+                                <li>Minimum 4 gün çalışma</li>
+                                <li>Toplam 30 saat</li>
+                                <li><strong>7.5 saat altı günler dahil sayılır</strong></li>
+                            </ul>
+                        </div>
+                        <div class="criteria-item">
+                            <h4>Tam Destek (12,000 TL)</h4>
+                            <ul>
+                                <li>7.5+ saat çalışılan günlerin sayısı 11+ olmalı</li>
+                                <li><strong>7.5 saat altı günler sayılmaz</strong></li>
+                                <li><em>Örnek: 15 günden 12 tanesi 8 saat, 3 tanesi 6 saat = 12 gün sayılır (Tam Destek)</em></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Site Statistics -->
+                <div class="card">
+                    <h3><i class="fas fa-chart-line"></i> Site İstatistikleri</h3>
+                    <div class="site-stats">
+                        <div class="stat-row">
+                            <div class="stat-icon">
+                                <i class="fas fa-users"></i>
+                            </div>
+                            <div class="stat-info">
+                                <div class="stat-label">Toplam Ziyaretçi</div>
+                                <div class="stat-number" id="totalVisitors">-</div>
+                            </div>
+                        </div>
+                        <div class="stat-row">
+                            <div class="stat-icon">
+                                <i class="fas fa-eye"></i>
+                            </div>
+                            <div class="stat-info">
+                                <div class="stat-label">Bugünkü Ziyaret</div>
+                                <div class="stat-number" id="dailyVisitors">-</div>
+                            </div>
+                        </div>
+                        <div class="stat-row">
+                            <div class="stat-icon">
+                                <i class="fas fa-clock"></i>
+                            </div>
+                            <div class="stat-info">
+                                <div class="stat-label">Son Güncelleme</div>
+                                <div class="stat-number" id="lastUpdate">-</div>
+                            </div>
+                        </div>
+                        <div class="stat-row">
+                            <div class="stat-icon">
+                                <i class="fab fa-github"></i>
+                            </div>
+                            <div class="stat-info">
+                                <div class="stat-label">Deploy Status</div>
+                                <div class="stat-number deploy-status" id="deployStatus">Active</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="github-info">
+                        <p><i class="fab fa-github"></i> GitHub Actions ile otomatik deploy</p>
+                        <p><i class="fas fa-rocket"></i> Her commit ile güncellenir</p>
+                    </div>
+                </div>
+
+                <!-- Export -->
+                <div class="card">
+                    <h3><i class="fas fa-download"></i> Dışa Aktar</h3>
+                    <div class="export-buttons">
+                        <button id="exportPDF" class="export-btn">
+                            <i class="fas fa-file-pdf"></i> PDF İndir
+                        </button>
+                        <button id="exportExcel" class="export-btn">
+                            <i class="fas fa-file-excel"></i> Excel İndir
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Selected Days Display -->
+        <div class="selected-days-section">
+            <div class="card">
+                <h3><i class="fas fa-list"></i> Seçilen Günler Detayı</h3>
+                <div id="selectedDaysDetail" class="selected-days-detail">
+                    <p class="no-selection">Henüz gün seçilmedi</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hour Input Modal -->
+    <div id="hourModal" class="modal">
+        <div class="modal-content">
+            <h3>Çalışma Saati Girin</h3>
+            <p id="modalDate"></p>
+            <div class="input-group">
+                <label for="hoursInput">Çalışma Saati (0-24):</label>
+                <input type="number" id="hoursInput" min="0" max="24" step="0.5" placeholder="8">
+            </div>
+            <div class="modal-buttons">
+                <button id="saveHours" class="btn-primary">Kaydet</button>
+                <button id="cancelHours" class="btn-secondary">İptal</button>
+                <button id="removeDay" class="btn-danger">Günü Kaldır</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
