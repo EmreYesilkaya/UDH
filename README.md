@@ -1,5 +1,9 @@
 # 🚛 UDH - Ulaştırma Desteği Hesaplama
 
+[![Deploy to GitHub Pages](https://github.com/EmreYesilkaya/UDH/actions/workflows/deploy.yml/badge.svg)](https://github.com/EmreYesilkaya/UDH/actions/workflows/deploy.yml)
+[![GitHub Pages](https://img.shields.io/badge/GitHub%20Pages-Live-brightgreen)](https://emreyesilkaya.github.io/UDH/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 Modern ve kullanıcı dostu bir ulaştırma desteği hesaplama uygulaması. Çalışma günlerinizi seçin, saatlerinizi girin ve otomatik olarak destek miktarınızı hesaplayın.
 
 ## 🌟 Özellikler
@@ -112,12 +116,19 @@ Uygulama tüm cihazlarda mükemmel çalışır:
 ### Proje Yapısı
 ```
 UDH/
-├── index.html          # Ana HTML dosyası
-├── styles.css          # CSS stilleri
-├── script.js           # JavaScript kodu
-├── README.md           # Proje dokümantasyonu
-└── LICENSE             # Lisans dosyası
+├── .github/workflows/
+│   ├── deploy.yml                    # GitHub Pages deployment
+│   └── deploy-backup.yml.disabled    # Backup deployment method
+├── index.html                        # Ana HTML dosyası
+├── styles.css                        # CSS stilleri
+├── script.js                         # JavaScript kodu
+├── README.md                         # Proje dokümantasyonu
+├── DEPLOYMENT.md                     # Deployment troubleshooting
+└── LICENSE                           # Lisans dosyası
 ```
+
+### Deployment
+Proje GitHub Actions ile otomatik olarak deploy edilir. Deployment sorunları için `DEPLOYMENT.md` dosyasına bakın.
 
 ### Katkıda Bulunma
 
