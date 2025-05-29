@@ -24,8 +24,9 @@ class TransportSupportCalculator {
         const holidays = new Map();
         const bridgeDays = new Map();
         
-        // Fixed holidays for multiple years
+        // Fixed holidays for 2024 and 2026 only (2025 has custom dates)
         for (let year = 2024; year <= 2026; year++) {
+            if (year === 2025) continue; // Skip 2025, handled separately
             holidays.set(`${year}-01-01`, 'Yılbaşı');
             holidays.set(`${year}-04-23`, 'Ulusal Egemenlik ve Çocuk Bayramı');
             holidays.set(`${year}-05-01`, 'Emek ve Dayanışma Günü');
@@ -35,30 +36,53 @@ class TransportSupportCalculator {
             holidays.set(`${year}-10-29`, 'Cumhuriyet Bayramı');
         }
         
-        // 2025 Specific holidays with correct dates
-        // Nevruz (special day)
-        holidays.set('2025-03-21', 'Nevruz');
+        // 2025 Specific holidays - Only the dates you specified
+        // Ocak holidays
+        holidays.set('2025-01-01', 'Yılbaşı');
         
-        // Ramazan Bayramı 2025
-        holidays.set('2025-05-30', 'Ramazan Bayramı 1. Gün');
-        holidays.set('2025-05-31', 'Ramazan Bayramı 2. Gün');
-        holidays.set('2025-06-01', 'Ramazan Bayramı 3. Gün');
+        // Mart holidays
+        holidays.set('2025-03-29', 'Resmi Tatil');
+        holidays.set('2025-03-30', 'Resmi Tatil');
+        holidays.set('2025-03-31', 'Resmi Tatil');
         
-        // Kurban Bayramı 2025
-        holidays.set('2025-08-06', 'Kurban Bayramı Arifesi');
-        holidays.set('2025-08-07', 'Kurban Bayramı 1. Gün');
-        holidays.set('2025-08-08', 'Kurban Bayramı 2. Gün');
-        holidays.set('2025-08-09', 'Kurban Bayramı 3. Gün');
-        holidays.set('2025-08-10', 'Kurban Bayramı 4. Gün');
+        // Nisan holidays  
+        holidays.set('2025-04-01', 'Resmi Tatil');
+        holidays.set('2025-04-02', 'Resmi Tatil');
+        holidays.set('2025-04-03', 'Resmi Tatil');
+        holidays.set('2025-04-04', 'Resmi Tatil');
+        holidays.set('2025-04-23', 'Ulusal Egemenlik ve Çocuk Bayramı');
         
-        // Year-end special day
-        holidays.set('2025-12-31', 'Yılbaşı Arifesi');
+        // Mayıs holidays
+        holidays.set('2025-05-01', 'Emek ve Dayanışma Günü');
+        holidays.set('2025-05-02', 'Resmi Tatil');
+        holidays.set('2025-05-19', 'Atatürk\'ü Anma, Gençlik ve Spor Bayramı');
         
-        // Bridge Days 2025 (Köprü İzin Günleri)
-        bridgeDays.set('2025-04-22', 'Köprü İzin Günü (23 Nisan öncesi)');
-        bridgeDays.set('2025-04-24', 'Köprü İzin Günü (23 Nisan sonrası)');
-        bridgeDays.set('2025-05-02', 'Köprü İzin Günü (1 Mayıs sonrası)');
-        bridgeDays.set('2025-05-20', 'Köprü İzin Günü (19 Mayıs sonrası)');
+        // Haziran holidays
+        holidays.set('2025-06-05', 'Resmi Tatil');
+        holidays.set('2025-06-06', 'Resmi Tatil');
+        holidays.set('2025-06-07', 'Resmi Tatil');
+        holidays.set('2025-06-08', 'Resmi Tatil');
+        holidays.set('2025-06-09', 'Resmi Tatil');
+        
+        // Temmuz holidays
+        holidays.set('2025-07-14', 'Resmi Tatil');
+        holidays.set('2025-07-15', '15 Temmuz Demokrasi ve Milli Birlik Günü');
+        holidays.set('2025-07-16', 'Resmi Tatil');
+        holidays.set('2025-07-17', 'Resmi Tatil');
+        holidays.set('2025-07-18', 'Resmi Tatil');
+        
+        // Ağustos holidays
+        holidays.set('2025-08-18', 'Resmi Tatil');
+        holidays.set('2025-08-19', 'Resmi Tatil');
+        holidays.set('2025-08-20', 'Resmi Tatil');
+        holidays.set('2025-08-21', 'Resmi Tatil');
+        holidays.set('2025-08-22', 'Resmi Tatil');
+        holidays.set('2025-08-30', 'Zafer Bayramı');
+        
+        // Ekim holidays
+        holidays.set('2025-10-27', 'Resmi Tatil');
+        holidays.set('2025-10-28', 'Resmi Tatil');
+        holidays.set('2025-10-29', 'Cumhuriyet Bayramı');
         
         // Previous years holidays (2024)
         // Ramazan Bayramı 2024
@@ -219,11 +243,11 @@ class TransportSupportCalculator {
             this.openModal(date, this.selectedDays.get(dateString));
         } else {
             // New selection
-            this.openModal(date, 8); // Default 8 hours
+            this.openModal(date, 10.00); // Default 10.00 hours
         }
     }
 
-    openModal(date, currentHours = 8) {
+    openModal(date, currentHours = 10.00) {
         this.currentModalDate = date;
         const dateString = this.formatDateTurkish(date);
         
@@ -249,8 +273,8 @@ class TransportSupportCalculator {
         
         console.log('Saving hours:', hours, 'Type:', typeof hours);
         
-        if (isNaN(hours) || hours < 0 || hours > 24) {
-            alert('Lütfen 0-24 arasında geçerli bir saat değeri girin.');
+        if (isNaN(hours) || hours < 10.00 || hours > 10.59) {
+            alert('Lütfen 10.00-10.59 arasında geçerli bir saat değeri girin.');
             return;
         }
 
