@@ -42,19 +42,20 @@ body {
 
 .developer-credit {
     margin-top: 15px;
-    padding: 10px 20px;
-    background: rgba(255, 255, 255, 0.1);
+    padding: 12px 24px;
+    background: linear-gradient(145deg, #ffffff, #f0f0f0);
+    color: #333;
     border-radius: 25px;
     display: inline-block;
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    border: 2px solid #e0e0e0;
 }
 
 .developer-credit p {
-    font-size: 0.9rem;
+    font-size: 1rem;
     margin: 0;
-    opacity: 0.8;
-    font-weight: 500;
+    font-weight: 600;
+    color: #2c3e50;
 }
 
 .social-links {
