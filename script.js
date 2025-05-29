@@ -195,6 +195,9 @@ class TransportSupportCalculator {
             }, 300); // Delay to allow orientation change to complete
         });
 
+        // Mobile-specific touch event improvements
+        this.setupMobileOptimizations();
+
         // Handle visibility changes (when switching tabs or apps)
         document.addEventListener('visibilitychange', () => {
             if (!document.hidden) {
@@ -847,6 +850,232 @@ class TransportSupportCalculator {
         document.body.appendChild(testButton);
     }
     */
+
+    // Mobile optimization setup for touch events and UX improvements
+    setupMobileOptimizations() {
+        const isMobile = window.innerWidth <= 768;
+        const isTouch = 'ontouchstart' in window;
+        
+        if (isMobile || isTouch) {
+            // Prevent zoom on input focus (mobile specific)
+            const inputs = document.querySelectorAll('input, select, textarea');
+            inputs.forEach(input => {
+                input.addEventListener('focus', (e) => {
+                    // Add viewport meta tag modification temporarily
+                    const viewport = document.querySelector('meta[name=viewport]');
+                    if (viewport) {
+                        const original = viewport.content;
+                        viewport.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
+                        
+                        // Restore original viewport on blur
+                        input.addEventListener('blur', () => {
+                            viewport.content = original;
+                        }, { once: true });
+                    }
+                });
+            });
+            
+            // Enhanced touch feedback for calendar days
+            const calendar = document.getElementById('calendar');
+            if (calendar) {
+                calendar.addEventListener('touchstart', (e) => {
+                    const day = e.target.closest('.calendar-day');
+                    if (day && !day.classList.contains('other-month')) {
+                        day.style.transform = 'scale(0.95)';
+                        day.style.opacity = '0.8';
+                    }
+                }, { passive: true });
+                
+                calendar.addEventListener('touchend', (e) => {
+                    const day = e.target.closest('.calendar-day');
+                    if (day && !day.classList.contains('other-month')) {
+                        setTimeout(() => {
+                            day.style.transform = '';
+                            day.style.opacity = '';
+                        }, 150);
+                    }
+                }, { passive: true });
+            }
+            
+            // Optimize modals for mobile
+            const modal = document.getElementById('hourModal');
+            if (modal) {
+                // Add mobile-specific modal behaviors
+                modal.addEventListener('touchmove', (e) => {
+                    // Prevent background scrolling when modal is open
+                    if (modal.style.display === 'flex') {
+                        e.preventDefault();
+                    }
+                }, { passive: false });
+                
+                // Enhanced touch closing for modal
+                let touchStartY = 0;
+                modal.addEventListener('touchstart', (e) => {
+                    touchStartY = e.touches[0].clientY;
+                }, { passive: true });
+                
+                modal.addEventListener('touchend', (e) => {
+                    const touchEndY = e.changedTouches[0].clientY;
+                    const diffY = touchStartY - touchEndY;
+                    
+                    // Allow swipe down to close modal (if swipe > 50px)
+                    if (diffY < -50 && e.target === modal) {
+                        this.closeModal();
+                    }
+                }, { passive: true });
+            }
+            
+            // Optimize confetti for mobile performance
+            this.optimizeConfettiForMobile();
+            
+            // Add touch-friendly quick actions
+            this.setupMobileQuickActions();
+            
+            // Handle iOS Safari viewport height issues
+            this.fixIOSViewportHeight();
+        }
+        
+        // Add mobile navigation helpers
+        this.addMobileNavigationHelpers();
+        
+        // Setup mobile-optimized statistics scrolling
+        this.setupMobileStatsScrolling();
+    }
+    
+    // Optimize confetti for mobile devices
+    optimizeConfettiForMobile() {
+        // Reduce confetti particles on mobile for better performance
+        if (window.innerWidth <= 768) {
+            this.mobileConfettiCount = 15; // Reduced from 25
+            this.mobileConfettiDuration = 2000; // Shorter duration
+        }
+    }
+    
+    // Setup mobile-specific quick actions
+    setupMobileQuickActions() {
+        const selectedDaysContainer = document.querySelector('.selected-days-container');
+        if (selectedDaysContainer && window.innerWidth <= 768) {
+            // Add long press support for mobile edit/delete
+            let longPressTimer;
+            
+            selectedDaysContainer.addEventListener('touchstart', (e) => {
+                const dayItem = e.target.closest('.selected-day-item');
+                if (dayItem) {
+                    longPressTimer = setTimeout(() => {
+                        // Show quick actions on long press
+                        const existingActions = dayItem.querySelector('.quick-actions');
+                        if (existingActions) {
+                            existingActions.style.display = 'flex';
+                            existingActions.style.opacity = '1';
+                            
+                            // Add haptic feedback if available
+                            if (navigator.vibrate) {
+                                navigator.vibrate(50);
+                            }
+                        }
+                    }, 500); // Long press duration
+                }
+            }, { passive: true });
+            
+            selectedDaysContainer.addEventListener('touchend', () => {
+                clearTimeout(longPressTimer);
+            }, { passive: true });
+            
+            selectedDaysContainer.addEventListener('touchmove', () => {
+                clearTimeout(longPressTimer);
+            }, { passive: true });
+        }
+    }
+    
+    // Fix iOS Safari viewport height issues
+    fixIOSViewportHeight() {
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+        if (isIOS) {
+            // Handle iOS Safari viewport height changes
+            const setVH = () => {
+                const vh = window.innerHeight * 0.01;
+                document.documentElement.style.setProperty('--vh', `${vh}px`);
+            };
+            
+            setVH();
+            window.addEventListener('resize', setVH);
+            window.addEventListener('orientationchange', () => {
+                setTimeout(setVH, 100);
+            });
+        }
+    }
+    
+    // Add mobile navigation helpers
+    addMobileNavigationHelpers() {
+        if (window.innerWidth <= 768) {
+            // Add mobile-friendly month navigation
+            const monthNav = document.querySelector('.month-navigation');
+            if (monthNav) {
+                // Add swipe support for month navigation
+                let touchStartX = 0;
+                let touchEndX = 0;
+                
+                monthNav.addEventListener('touchstart', (e) => {
+                    touchStartX = e.touches[0].clientX;
+                }, { passive: true });
+                
+                monthNav.addEventListener('touchend', (e) => {
+                    touchEndX = e.changedTouches[0].clientX;
+                    const diffX = touchStartX - touchEndX;
+                    
+                    // Swipe threshold of 50px
+                    if (Math.abs(diffX) > 50) {
+                        if (diffX > 0) {
+                            // Swipe left - next month
+                            document.getElementById('nextMonth').click();
+                        } else {
+                            // Swipe right - previous month
+                            document.getElementById('prevMonth').click();
+                        }
+                    }
+                }, { passive: true });
+            }
+        }
+    }
+    
+    // Setup mobile-optimized statistics scrolling
+    setupMobileStatsScrolling() {
+        const statsGrid = document.querySelector('.stats-grid');
+        if (statsGrid && window.innerWidth <= 768) {
+            // Add smooth momentum scrolling for iOS
+            statsGrid.style.webkitOverflowScrolling = 'touch';
+            
+            // Add scroll indicators for horizontal scroll
+            const scrollIndicator = document.createElement('div');
+            scrollIndicator.className = 'mobile-scroll-indicator';
+            scrollIndicator.innerHTML = '← Kaydırın →';
+            scrollIndicator.style.cssText = `
+                display: none;
+                text-align: center;
+                color: #666;
+                font-size: 12px;
+                padding: 5px;
+                margin-top: 5px;
+            `;
+            
+            // Show indicator if content is scrollable
+            if (statsGrid.scrollWidth > statsGrid.clientWidth) {
+                scrollIndicator.style.display = 'block';
+                statsGrid.parentNode.appendChild(scrollIndicator);
+                
+                // Hide indicator after user scrolls
+                let scrollTimer;
+                statsGrid.addEventListener('scroll', () => {
+                    clearTimeout(scrollTimer);
+                    scrollIndicator.style.opacity = '0.5';
+                    
+                    scrollTimer = setTimeout(() => {
+                        scrollIndicator.style.display = 'none';
+                    }, 2000);
+                }, { passive: true });
+            }
+        }
+    }
 }
 
 // Visitor tracking functionality
@@ -946,15 +1175,22 @@ class VisitorTracker {
     }
 }
 
-// Confetti Animation Functions
+// Confetti Animation Functions - Mobile Optimized
 function createConfetti() {
     const confettiContainer = document.getElementById('confettiContainer');
+    if (!confettiContainer) return;
+    
+    // Mobile optimization check
+    const isMobile = window.innerWidth <= 768;
+    const particleCount = isMobile ? 15 : 25; // Reduced count for mobile
+    const baseSize = isMobile ? 6 : 10; // Smaller particles on mobile
+    const maxDuration = isMobile ? 2.5 : 4.5; // Shorter duration on mobile
     
     // Clear any existing confetti
     confettiContainer.innerHTML = '';
     
-    // Create 25 confetti pieces with different shapes
-    for (let i = 0; i < 25; i++) {
+    // Create confetti pieces with mobile-optimized settings
+    for (let i = 0; i < particleCount; i++) {
         const confetti = document.createElement('div');
         confetti.className = 'confetti';
         
@@ -969,10 +1205,10 @@ function createConfetti() {
         const colors = ['#e74c3c', '#3498db', '#2ecc71', '#f39c12', '#9b59b6', '#e67e22', '#1abc9c', '#34495e', '#e91e63', '#ff5722', '#607d8b', '#795548', '#009688', '#ff9800', '#673ab7'];
         const randomColor = colors[Math.floor(Math.random() * colors.length)];
         const randomLeft = Math.random() * 100;
-        const randomDelay = Math.random() * 2;
-        const randomDuration = 2.5 + Math.random() * 2;
+        const randomDelay = Math.random() * (isMobile ? 1 : 2);
+        const randomDuration = 2.5 + Math.random() * (maxDuration - 2.5);
         const randomRotation = Math.random() * 360;
-        const randomSize = 8 + Math.random() * 6; // 8-14px size variation
+        const randomSize = baseSize + Math.random() * (isMobile ? 3 : 6); // Reduced size variation for mobile
         
         confetti.style.backgroundColor = randomColor;
         confetti.style.left = randomLeft + '%';
@@ -982,7 +1218,14 @@ function createConfetti() {
         confetti.style.width = randomSize + 'px';
         confetti.style.height = randomSize + 'px';
         
-        // For triangles and stars, set the border color instead
+        // Mobile optimization: use transform3d for hardware acceleration
+        if (isMobile) {
+            confetti.style.transform += ' translateZ(0)';
+            confetti.style.willChange = 'transform, opacity';
+            confetti.style.backfaceVisibility = 'hidden';
+        }
+        
+        // For triangles, set the border color instead
         if (randomShape === 'triangle') {
             confetti.style.borderBottomColor = randomColor;
             confetti.style.backgroundColor = 'transparent';
@@ -994,11 +1237,14 @@ function createConfetti() {
     // Show the confetti container
     confettiContainer.style.display = 'block';
     
-    // Hide confetti after animation completes
+    // Hide confetti after animation completes - shorter duration for mobile
+    const cleanupTime = isMobile ? 3000 : 6000;
     setTimeout(() => {
-        confettiContainer.style.display = 'none';
-        confettiContainer.innerHTML = '';
-    }, 6000);
+        if (confettiContainer) {
+            confettiContainer.style.display = 'none';
+            confettiContainer.innerHTML = '';
+        }
+    }, cleanupTime);
 }
 
 function triggerConfetti() {
@@ -1030,44 +1276,61 @@ function showSuccessMessage() {
         gradient = 'linear-gradient(135deg, #3498db, #2980b9)'; // Blue gradient as fallback
     }
     
+    // Mobile optimization check
+    const isMobile = window.innerWidth <= 768;
+    
     // Create a temporary success message
     const successDiv = document.createElement('div');
     successDiv.innerHTML = `<i class="fas fa-check-circle"></i> ${message}`;
     successDiv.style.cssText = `
         position: fixed;
-        top: 20px;
-        right: 20px;
+        ${isMobile ? 'top: 10px; left: 10px; right: 10px;' : 'top: 20px; right: 20px;'}
         background: ${gradient};
         color: white;
-        padding: 15px 20px;
+        padding: ${isMobile ? '12px 16px' : '15px 20px'};
         border-radius: 12px;
         box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
         z-index: 10000;
         font-weight: 600;
-        font-size: 14px;
-        transform: translateX(400px);
+        font-size: ${isMobile ? '13px' : '14px'};
+        ${isMobile ? 'transform: translateY(-100px);' : 'transform: translateX(400px);'}
         transition: all 0.5s ease;
-        max-width: 300px;
+        max-width: ${isMobile ? 'none' : '300px'};
         text-align: center;
         border: 2px solid rgba(255, 255, 255, 0.2);
+        ${isMobile ? 'margin: 0 auto;' : ''}
     `;
     
     document.body.appendChild(successDiv);
     
-    // Slide in
+    // Add haptic feedback for mobile
+    if (isMobile && navigator.vibrate) {
+        navigator.vibrate([100, 50, 100]); // Success pattern
+    }
+    
+    // Slide in animation (different for mobile)
     setTimeout(() => {
-        successDiv.style.transform = 'translateX(0)';
+        if (isMobile) {
+            successDiv.style.transform = 'translateY(0)';
+        } else {
+            successDiv.style.transform = 'translateX(0)';
+        }
     }, 100);
     
-    // Slide out and remove
+    // Slide out and remove (shorter duration for mobile)
+    const displayTime = isMobile ? 3000 : 4000;
     setTimeout(() => {
-        successDiv.style.transform = 'translateX(400px)';
+        if (isMobile) {
+            successDiv.style.transform = 'translateY(-100px)';
+        } else {
+            successDiv.style.transform = 'translateX(400px)';
+        }
         setTimeout(() => {
             if (successDiv.parentNode) {
                 successDiv.parentNode.removeChild(successDiv);
             }
         }, 500);
-    }, 4000);
+    }, displayTime);
 }
 
 // Initialize the application
