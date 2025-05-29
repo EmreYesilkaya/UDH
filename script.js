@@ -22,6 +22,7 @@ class TransportSupportCalculator {
 
     generateHolidays() {
         const holidays = new Map();
+        const bridgeDays = new Map();
         
         // Fixed holidays for multiple years
         for (let year = 2024; year <= 2026; year++) {
@@ -34,31 +35,57 @@ class TransportSupportCalculator {
             holidays.set(`${year}-10-29`, 'Cumhuriyet Bayramı');
         }
         
-        // Religious holidays (approximate dates)
-        // Ramazan Bayramı
+        // 2025 Specific holidays with correct dates
+        // Nevruz (special day)
+        holidays.set('2025-03-21', 'Nevruz');
+        
+        // Ramazan Bayramı 2025
+        holidays.set('2025-05-30', 'Ramazan Bayramı 1. Gün');
+        holidays.set('2025-05-31', 'Ramazan Bayramı 2. Gün');
+        holidays.set('2025-06-01', 'Ramazan Bayramı 3. Gün');
+        
+        // Kurban Bayramı 2025
+        holidays.set('2025-08-06', 'Kurban Bayramı Arifesi');
+        holidays.set('2025-08-07', 'Kurban Bayramı 1. Gün');
+        holidays.set('2025-08-08', 'Kurban Bayramı 2. Gün');
+        holidays.set('2025-08-09', 'Kurban Bayramı 3. Gün');
+        holidays.set('2025-08-10', 'Kurban Bayramı 4. Gün');
+        
+        // Year-end special day
+        holidays.set('2025-12-31', 'Yılbaşı Arifesi');
+        
+        // Bridge Days 2025 (Köprü İzin Günleri)
+        bridgeDays.set('2025-04-22', 'Köprü İzin Günü (23 Nisan öncesi)');
+        bridgeDays.set('2025-04-24', 'Köprü İzin Günü (23 Nisan sonrası)');
+        bridgeDays.set('2025-05-02', 'Köprü İzin Günü (1 Mayıs sonrası)');
+        bridgeDays.set('2025-05-20', 'Köprü İzin Günü (19 Mayıs sonrası)');
+        
+        // Previous years holidays (2024)
+        // Ramazan Bayramı 2024
         holidays.set('2024-04-10', 'Ramazan Bayramı 1. Gün');
         holidays.set('2024-04-11', 'Ramazan Bayramı 2. Gün');
         holidays.set('2024-04-12', 'Ramazan Bayramı 3. Gün');
-        holidays.set('2025-03-31', 'Ramazan Bayramı 1. Gün');
-        holidays.set('2025-04-01', 'Ramazan Bayramı 2. Gün');
-        holidays.set('2025-04-02', 'Ramazan Bayramı 3. Gün');
-        holidays.set('2026-03-20', 'Ramazan Bayramı 1. Gün');
-        holidays.set('2026-03-21', 'Ramazan Bayramı 2. Gün');
-        holidays.set('2026-03-22', 'Ramazan Bayramı 3. Gün');
         
-        // Kurban Bayramı
+        // Kurban Bayramı 2024
         holidays.set('2024-06-16', 'Kurban Bayramı 1. Gün');
         holidays.set('2024-06-17', 'Kurban Bayramı 2. Gün');
         holidays.set('2024-06-18', 'Kurban Bayramı 3. Gün');
         holidays.set('2024-06-19', 'Kurban Bayramı 4. Gün');
-        holidays.set('2025-06-06', 'Kurban Bayramı 1. Gün');
-        holidays.set('2025-06-07', 'Kurban Bayramı 2. Gün');
-        holidays.set('2025-06-08', 'Kurban Bayramı 3. Gün');
-        holidays.set('2025-06-09', 'Kurban Bayramı 4. Gün');
+        
+        // Future years holidays (2026)
+        // Ramazan Bayramı 2026
+        holidays.set('2026-03-20', 'Ramazan Bayramı 1. Gün');
+        holidays.set('2026-03-21', 'Ramazan Bayramı 2. Gün');
+        holidays.set('2026-03-22', 'Ramazan Bayramı 3. Gün');
+        
+        // Kurban Bayramı 2026
         holidays.set('2026-05-27', 'Kurban Bayramı 1. Gün');
         holidays.set('2026-05-28', 'Kurban Bayramı 2. Gün');
         holidays.set('2026-05-29', 'Kurban Bayramı 3. Gün');
         holidays.set('2026-05-30', 'Kurban Bayramı 4. Gün');
+        
+        // Store bridge days separately
+        this.bridgeDays = bridgeDays;
         
         return holidays;
     }
@@ -149,6 +176,7 @@ class TransportSupportCalculator {
         const dateString = this.formatDate(date);
         const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
         const isHoliday = this.holidays.has(dateString);
+        const isBridgeDay = this.bridgeDays && this.bridgeDays.has(dateString);
         const isSelected = this.selectedDays.has(dateString);
         
         if (isOtherMonth) {
@@ -156,6 +184,9 @@ class TransportSupportCalculator {
         } else if (isHoliday) {
             dayElement.classList.add('holiday', 'tooltip');
             dayElement.setAttribute('data-tooltip', this.holidays.get(dateString));
+        } else if (isBridgeDay) {
+            dayElement.classList.add('bridge-day', 'tooltip');
+            dayElement.setAttribute('data-tooltip', this.bridgeDays.get(dateString));
         } else if (isWeekend) {
             dayElement.classList.add('weekend');
         } else {

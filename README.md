@@ -17,6 +17,37 @@ Modern ve kullanıcı dostu bir ulaştırma desteği hesaplama uygulaması. Çal
 - **🎨 Modern Tasarım**: Responsive ve kullanıcı dostu arayüz
 - **🇹🇷 Türkiye Tatilleri**: Resmi tatil günleri otomatik olarak işaretlenir
 
+## 📅 2025 Resmi Tatiller (Turuncu Alanlar)
+
+**Toplam: 17 Gün**
+
+1. **1 Ocak (Çarşamba)** – Yılbaşı
+2. **21 Mart (Cuma)** – Nevruz (muhtemel özel gün, yerel olabilir)
+3. **23 Nisan (Çarşamba)** – Ulusal Egemenlik ve Çocuk Bayramı
+4. **1 Mayıs (Perşembe)** – Emek ve Dayanışma Günü
+5. **19 Mayıs (Pazartesi)** – Atatürk'ü Anma, Gençlik ve Spor Bayramı
+6. **30 Mayıs (Cuma)** – Ramazan Bayramı 1. Gün
+7. **31 Mayıs (Cumartesi)** – Ramazan Bayramı 2. Gün
+8. **1 Haziran (Pazar)** – Ramazan Bayramı 3. Gün
+9. **15 Temmuz (Salı)** – Demokrasi ve Millî Birlik Günü
+10. **6 Ağustos (Çarşamba)** – Kurban Bayramı Arifesi
+11. **7 Ağustos (Perşembe)** – Kurban Bayramı 1. Gün
+12. **8 Ağustos (Cuma)** – Kurban Bayramı 2. Gün
+13. **9 Ağustos (Cumartesi)** – Kurban Bayramı 3. Gün
+14. **10 Ağustos (Pazar)** – Kurban Bayramı 4. Gün
+15. **30 Ağustos (Cumartesi)** – Zafer Bayramı
+16. **29 Ekim (Çarşamba)** – Cumhuriyet Bayramı
+17. **31 Aralık (Çarşamba)** – Yılbaşı Arifesi (özel izin olabilir)
+
+## 🟪 Köprü İzin Günleri (Mor Alanlar)
+
+**Toplam: 4 Gün**
+
+1. **2 Mayıs (Cuma)** – 1 Mayıs Perşembe'ye denk geldiği için 4 günlük tatil için köprü günü
+2. **20 Mayıs (Salı)** – 19 Mayıs Pazartesi tatiliyle birleşiyor
+3. **22 Nisan (Salı)** – 23 Nisan öncesi köprü
+4. **24 Nisan (Perşembe)** – 23 Nisan sonrası köprü günü
+
 ## 🚀 Canlı Demo
 
 🌐 **[UDH - Ulaştırma Desteği Hesaplama](https://emreyesilkaya.github.io/UDH/)**

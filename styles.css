@@ -206,6 +206,14 @@ body {
     cursor: help;
 }
 
+/* Bridge Days (Köprü İzin Günleri) */
+.calendar-day.bridge-day {
+    background: linear-gradient(135deg, #f3e8ff, #e9d5ff);
+    border: 2px solid #8b5cf6;
+    color: #7c3aed;
+    cursor: help;
+}
+
 /* Selected Days */
 .calendar-day.selected {
     background: linear-gradient(135deg, #3498db, #2980b9);
@@ -337,6 +345,11 @@ body {
 .holiday-icon {
     background: linear-gradient(135deg, #fff7ed, #fed7aa);
     border: 2px solid #f97316;
+}
+
+.bridge-day-icon {
+    background: linear-gradient(135deg, #f3e8ff, #e9d5ff);
+    border: 2px solid #8b5cf6;
 }
 
 .weekend-icon {
