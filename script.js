@@ -126,11 +126,13 @@ class TransportSupportCalculator {
     bindEvents() {
         document.getElementById('prevMonth').addEventListener('click', () => {
             this.currentDate.setMonth(this.currentDate.getMonth() - 1);
+            this.clearSelectedDaysOnMonthChange();
             this.renderCalendar();
         });
 
         document.getElementById('nextMonth').addEventListener('click', () => {
             this.currentDate.setMonth(this.currentDate.getMonth() + 1);
+            this.clearSelectedDaysOnMonthChange();
             this.renderCalendar();
         });
 
@@ -706,6 +708,85 @@ class TransportSupportCalculator {
         }
     }
 
+    // Clear selected days when month changes
+    clearSelectedDaysOnMonthChange() {
+        const currentMonth = this.currentDate.getMonth();
+        const currentYear = this.currentDate.getFullYear();
+        
+        // Check if there are any selected days from different months
+        const daysToRemove = [];
+        for (const [dateString, hours] of this.selectedDays) {
+            const date = new Date(dateString);
+            if (date.getMonth() !== currentMonth || date.getFullYear() !== currentYear) {
+                daysToRemove.push(dateString);
+            }
+        }
+        
+        // Remove days from different months
+        daysToRemove.forEach(dateString => {
+            this.selectedDays.delete(dateString);
+        });
+        
+        // Show notification if days were cleared
+        if (daysToRemove.length > 0) {
+            this.showMonthChangeNotification(daysToRemove.length);
+        }
+        
+        // Update displays
+        this.updateSelectedDaysDisplay();
+        this.updateStats();
+    }
+    
+    // Show notification when days are cleared due to month change
+    showMonthChangeNotification(clearedCount) {
+        const monthName = this.turkishMonths[this.currentDate.getMonth()];
+        const notification = document.createElement('div');
+        notification.innerHTML = `<i class="fas fa-info-circle"></i> ${monthName} ayına geçildi. ${clearedCount} seçili gün temizlendi.`;
+        
+        const isMobile = window.innerWidth <= 768;
+        notification.style.cssText = `
+            position: fixed;
+            ${isMobile ? 'top: 10px; left: 10px; right: 10px;' : 'top: 20px; left: 50%; transform: translateX(-50%);'}
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            padding: ${isMobile ? '10px 15px' : '12px 18px'};
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
+            z-index: 9999;
+            font-weight: 500;
+            font-size: ${isMobile ? '12px' : '13px'};
+            ${isMobile ? 'transform: translateY(-80px);' : 'transform: translate(-50%, -80px);'}
+            transition: all 0.4s ease;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            text-align: center;
+        `;
+        
+        document.body.appendChild(notification);
+        
+        // Slide in animation
+        setTimeout(() => {
+            if (isMobile) {
+                notification.style.transform = 'translateY(0)';
+            } else {
+                notification.style.transform = 'translate(-50%, 0)';
+            }
+        }, 100);
+        
+        // Auto remove after 3 seconds
+        setTimeout(() => {
+            if (isMobile) {
+                notification.style.transform = 'translateY(-80px)';
+            } else {
+                notification.style.transform = 'translate(-50%, -80px)';
+            }
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                }
+            }, 400);
+        }, 3000);
+    }
+
     exportPDF() {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
@@ -824,32 +905,11 @@ class TransportSupportCalculator {
             { width: 20 }
         ];
         
-        XLSX.utils.book_append_sheet(wb, ws, 'Ulaştırma Desteği');
-        XLSX.writeFile(wb, `ulastirma-destegi-${monthYear.replace(' ', '-')}.xlsx`);
+        XLSX.utils.book_append_sheet(wb, ws, 'Ulaştırma Destek Raporu');
+        
+        // Create Excel file and download
+        XLSX.writeFile(wb, `ulastirma_destek_raporu_${this.formatDate(new Date()).replace(/\./g, '_')}.xlsx`);
     }
-
-    // Test function for confetti (development only)
-    /*
-    addTestConfettiButton() {
-        const testButton = document.createElement('button');
-        testButton.innerHTML = '🎉 Test Confetti';
-        testButton.style.cssText = `
-            position: fixed;
-            bottom: 20px;
-            left: 20px;
-            background: #e74c3c;
-            color: white;
-            border: none;
-            padding: 10px 15px;
-            border-radius: 5px;
-            cursor: pointer;
-            z-index: 1000;
-            font-size: 12px;
-        `;
-        testButton.onclick = () => triggerConfetti();
-        document.body.appendChild(testButton);
-    }
-    */
 
     // Mobile optimization setup for touch events and UX improvements
     setupMobileOptimizations() {
@@ -1078,263 +1138,7 @@ class TransportSupportCalculator {
     }
 }
 
-// Visitor tracking functionality
-class VisitorTracker {
-    constructor() {
-        this.storageKey = 'transport_calc_stats';
-        this.init();
-    }
-
-    init() {
-        this.updateVisitorStats();
-        this.updateSiteInfo();
-    }
-
-    updateVisitorStats() {
-        const stats = this.getStats();
-        const today = new Date().toDateString();
-        
-        // Update total visitors
-        if (!stats.totalVisitors) {
-            stats.totalVisitors = 0;
-        }
-        stats.totalVisitors++;
-        
-        // Update daily visitors
-        if (!stats.dailyVisits) {
-            stats.dailyVisits = {};
-        }
-        if (!stats.dailyVisits[today]) {
-            stats.dailyVisits[today] = 0;
-        }
-        stats.dailyVisits[today]++;
-        
-        // Update last visit
-        stats.lastVisit = new Date().toISOString();
-        
-        this.saveStats(stats);
-        this.displayStats(stats, today);
-    }
-
-    getStats() {
-        try {
-            const stored = localStorage.getItem(this.storageKey);
-            return stored ? JSON.parse(stored) : {};
-        } catch (e) {
-            return {};
-        }
-    }
-
-    saveStats(stats) {
-        try {
-            localStorage.setItem(this.storageKey, JSON.stringify(stats));
-        } catch (e) {
-            console.warn('Unable to save visitor stats');
-        }
-    }
-
-    displayStats(stats, today) {
-        // Total visitors
-        const totalElement = document.getElementById('totalVisitors');
-        if (totalElement) {
-            totalElement.textContent = stats.totalVisitors.toLocaleString('tr-TR');
-        }
-        
-        // Daily visitors
-        const dailyElement = document.getElementById('dailyVisitors');
-        if (dailyElement) {
-            const todayVisits = stats.dailyVisits[today] || 0;
-            dailyElement.textContent = todayVisits.toLocaleString('tr-TR');
-        }
-    }
-
-    updateSiteInfo() {
-        // Last update
-        const lastUpdateElement = document.getElementById('lastUpdate');
-        if (lastUpdateElement) {
-            const now = new Date();
-            const formatted = now.toLocaleDateString('tr-TR', {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-            });
-            lastUpdateElement.textContent = formatted;
-        }
-        
-        // Deploy status (simulated)
-        const deployStatusElement = document.getElementById('deployStatus');
-        if (deployStatusElement) {
-            // Simulate checking deployment status
-            setTimeout(() => {
-                deployStatusElement.textContent = 'Active';
-                deployStatusElement.className = 'stat-number deploy-status';
-            }, 500);
-        }
-    }
-}
-
-// Confetti Animation Functions - Mobile Optimized
-function createConfetti() {
-    const confettiContainer = document.getElementById('confettiContainer');
-    if (!confettiContainer) return;
-    
-    // Mobile optimization check
-    const isMobile = window.innerWidth <= 768;
-    const particleCount = isMobile ? 15 : 25; // Reduced count for mobile
-    const baseSize = isMobile ? 6 : 10; // Smaller particles on mobile
-    const maxDuration = isMobile ? 2.5 : 4.5; // Shorter duration on mobile
-    
-    // Clear any existing confetti
-    confettiContainer.innerHTML = '';
-    
-    // Create confetti pieces with mobile-optimized settings
-    for (let i = 0; i < particleCount; i++) {
-        const confetti = document.createElement('div');
-        confetti.className = 'confetti';
-        
-        // Add random shapes
-        const shapes = ['', 'circle', 'square'];
-        const randomShape = shapes[Math.floor(Math.random() * shapes.length)];
-        if (randomShape) {
-            confetti.classList.add(randomShape);
-        }
-        
-        // Random properties for more natural effect
-        const colors = ['#e74c3c', '#3498db', '#2ecc71', '#f39c12', '#9b59b6', '#e67e22', '#1abc9c', '#34495e', '#e91e63', '#ff5722', '#607d8b', '#795548', '#009688', '#ff9800', '#673ab7'];
-        const randomColor = colors[Math.floor(Math.random() * colors.length)];
-        const randomLeft = Math.random() * 100;
-        const randomDelay = Math.random() * (isMobile ? 1 : 2);
-        const randomDuration = 2.5 + Math.random() * (maxDuration - 2.5);
-        const randomRotation = Math.random() * 360;
-        const randomSize = baseSize + Math.random() * (isMobile ? 3 : 6); // Reduced size variation for mobile
-        
-        confetti.style.backgroundColor = randomColor;
-        confetti.style.left = randomLeft + '%';
-        confetti.style.animationDelay = randomDelay + 's';
-        confetti.style.animationDuration = randomDuration + 's';
-        confetti.style.transform = `rotate(${randomRotation}deg)`;
-        confetti.style.width = randomSize + 'px';
-        confetti.style.height = randomSize + 'px';
-        
-        // Mobile optimization: use transform3d for hardware acceleration
-        if (isMobile) {
-            confetti.style.transform += ' translateZ(0)';
-            confetti.style.willChange = 'transform, opacity';
-            confetti.style.backfaceVisibility = 'hidden';
-        }
-        
-        // For triangles, set the border color instead
-        if (randomShape === 'triangle') {
-            confetti.style.borderBottomColor = randomColor;
-            confetti.style.backgroundColor = 'transparent';
-        }
-        
-        confettiContainer.appendChild(confetti);
-    }
-    
-    // Show the confetti container
-    confettiContainer.style.display = 'block';
-    
-    // Hide confetti after animation completes - shorter duration for mobile
-    const cleanupTime = isMobile ? 3000 : 6000;
-    setTimeout(() => {
-        if (confettiContainer) {
-            confettiContainer.style.display = 'none';
-            confettiContainer.innerHTML = '';
-        }
-    }, cleanupTime);
-}
-
-function triggerConfetti() {
-    createConfetti();
-    
-    // Add celebratory message to console
-    console.log('🎉 Tebrikler! Ulaştırma desteği alabilirsiniz! 🎉');
-    
-    // Show success message with current qualification level
-    showSuccessMessage();
-}
-
-function showSuccessMessage() {
-    // Get current qualification level for the message
-    const paymentType = document.getElementById('paymentType').textContent;
-    const amount = document.getElementById('paymentAmount').textContent;
-    
-    let message = '';
-    let gradient = '';
-    
-    if (paymentType === 'Tam Destek') {
-        message = `🎉 Tam Destek Kazandınız! ${amount}`;
-        gradient = 'linear-gradient(135deg, #f39c12, #e67e22)'; // Gold gradient for full support
-    } else if (paymentType === 'Temel Destek') {
-        message = `✅ Temel Destek Kazandınız! ${amount}`;
-        gradient = 'linear-gradient(135deg, #2ecc71, #27ae60)'; // Green gradient for basic support
-    } else {
-        message = '🎉 Tebrikler! Destek alabilirsiniz!';
-        gradient = 'linear-gradient(135deg, #3498db, #2980b9)'; // Blue gradient as fallback
-    }
-    
-    // Mobile optimization check
-    const isMobile = window.innerWidth <= 768;
-    
-    // Create a temporary success message
-    const successDiv = document.createElement('div');
-    successDiv.innerHTML = `<i class="fas fa-check-circle"></i> ${message}`;
-    successDiv.style.cssText = `
-        position: fixed;
-        ${isMobile ? 'top: 10px; left: 10px; right: 10px;' : 'top: 20px; right: 20px;'}
-        background: ${gradient};
-        color: white;
-        padding: ${isMobile ? '12px 16px' : '15px 20px'};
-        border-radius: 12px;
-        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-        z-index: 10000;
-        font-weight: 600;
-        font-size: ${isMobile ? '13px' : '14px'};
-        ${isMobile ? 'transform: translateY(-100px);' : 'transform: translateX(400px);'}
-        transition: all 0.5s ease;
-        max-width: ${isMobile ? 'none' : '300px'};
-        text-align: center;
-        border: 2px solid rgba(255, 255, 255, 0.2);
-        ${isMobile ? 'margin: 0 auto;' : ''}
-    `;
-    
-    document.body.appendChild(successDiv);
-    
-    // Add haptic feedback for mobile
-    if (isMobile && navigator.vibrate) {
-        navigator.vibrate([100, 50, 100]); // Success pattern
-    }
-    
-    // Slide in animation (different for mobile)
-    setTimeout(() => {
-        if (isMobile) {
-            successDiv.style.transform = 'translateY(0)';
-        } else {
-            successDiv.style.transform = 'translateX(0)';
-        }
-    }, 100);
-    
-    // Slide out and remove (shorter duration for mobile)
-    const displayTime = isMobile ? 3000 : 4000;
-    setTimeout(() => {
-        if (isMobile) {
-            successDiv.style.transform = 'translateY(-100px)';
-        } else {
-            successDiv.style.transform = 'translateX(400px)';
-        }
-        setTimeout(() => {
-            if (successDiv.parentNode) {
-                successDiv.parentNode.removeChild(successDiv);
-            }
-        }, 500);
-    }, displayTime);
-}
-
-// Initialize the application
+// Initialize the calculator when the page loads
 document.addEventListener('DOMContentLoaded', () => {
     new TransportSupportCalculator();
-    new VisitorTracker();
 });
