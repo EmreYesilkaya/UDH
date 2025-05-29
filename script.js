@@ -221,12 +221,17 @@ class TransportSupportCalculator {
         if (isSelected) {
             dayElement.classList.add('selected');
             const hours = this.selectedDays.get(dateString);
-            if (hours < 7.5) {
+            const totalMinutes = Math.floor(hours * 100) % 100 + Math.floor(hours) * 60;
+            if (totalMinutes < 7.5 * 60) { // 7 hours 30 minutes = 450 minutes
                 dayElement.classList.add('low-hours');
             }
+            
+            // Convert decimal format back to hours:minutes for display
+            const displayHours = Math.floor(hours);
+            const displayMinutes = Math.floor((hours * 100) % 100);
             dayElement.innerHTML = `
                 <div>${date.getDate()}</div>
-                <div class="hours">${hours}s</div>
+                <div class="hours">${displayHours}:${displayMinutes.toString().padStart(2, '0')}</div>
             `;
         } else {
             dayElement.textContent = date.getDate();
@@ -243,11 +248,11 @@ class TransportSupportCalculator {
             this.openModal(date, this.selectedDays.get(dateString));
         } else {
             // New selection
-            this.openModal(date, 10.00); // Default 10.00 hours
+            this.openModal(date, 8.00); // Default 8.00 (8 hours 0 minutes)
         }
     }
 
-    openModal(date, currentHours = 10.00) {
+    openModal(date, currentHours = 8.00) {
         this.currentModalDate = date;
         const dateString = this.formatDateTurkish(date);
         
@@ -269,12 +274,33 @@ class TransportSupportCalculator {
     }
 
     saveHours() {
-        const hours = parseFloat(document.getElementById('hoursInput').value);
+        const input = document.getElementById('hoursInput').value;
+        const hours = parseFloat(input);
         
         console.log('Saving hours:', hours, 'Type:', typeof hours);
         
-        if (isNaN(hours) || hours < 10.00 || hours > 10.59) {
-            alert('Lütfen 10.00-10.59 arasında geçerli bir saat değeri girin.');
+        if (isNaN(hours)) {
+            alert('Lütfen geçerli bir saat değeri girin.');
+            return;
+        }
+        
+        // Check format: X.YZ where X is hours, YZ is minutes (00-59)
+        const parts = input.split('.');
+        if (parts.length !== 2 || parts[1].length !== 2) {
+            alert('Lütfen saat formatını X.YZ şeklinde girin (örnek: 8.30 = 8 saat 30 dakika).');
+            return;
+        }
+        
+        const hourPart = parseInt(parts[0]);
+        const minutePart = parseInt(parts[1]);
+        
+        if (minutePart < 0 || minutePart > 59) {
+            alert('Dakika değeri 00-59 arasında olmalıdır.');
+            return;
+        }
+        
+        if (hourPart < 0 || hourPart > 24) {
+            alert('Saat değeri 0-24 arasında olmalıdır.');
             return;
         }
 
@@ -334,10 +360,31 @@ class TransportSupportCalculator {
 
     calculatePayment() {
         const selectedDays = this.selectedDays.size;
-        const totalHours = Array.from(this.selectedDays.values()).reduce((sum, hours) => sum + hours, 0);
+        
+        // Convert decimal format (X.YZ) to total minutes for accurate calculation
+        const totalMinutes = Array.from(this.selectedDays.values()).reduce((sum, timeValue) => {
+            const hours = Math.floor(timeValue);
+            const minutes = Math.floor((timeValue * 100) % 100);
+            return sum + (hours * 60) + minutes;
+        }, 0);
+        
+        const totalHours = totalMinutes / 60; // Convert back to decimal hours for display
         const workingDaysInMonth = this.getWorkingDaysInMonth();
-        const validDaysForFull = Array.from(this.selectedDays.values()).filter(hours => hours >= 7.5).length;
-        const hasLowHours = Array.from(this.selectedDays.values()).some(hours => hours < 7.5);
+        
+        // Count days with at least 7 hours 30 minutes (450 minutes)
+        const validDaysForFull = Array.from(this.selectedDays.values()).filter(timeValue => {
+            const hours = Math.floor(timeValue);
+            const minutes = Math.floor((timeValue * 100) % 100);
+            const totalMins = (hours * 60) + minutes;
+            return totalMins >= 450; // 7 hours 30 minutes
+        }).length;
+        
+        const hasLowHours = Array.from(this.selectedDays.values()).some(timeValue => {
+            const hours = Math.floor(timeValue);
+            const minutes = Math.floor((timeValue * 100) % 100);
+            const totalMins = (hours * 60) + minutes;
+            return totalMins < 450; // Less than 7 hours 30 minutes
+        });
         
         // Calculate required days for full support (half of working days in month)
         const requiredDaysForFull = Math.ceil(workingDaysInMonth / 2);
@@ -345,16 +392,18 @@ class TransportSupportCalculator {
         // Debug logging
         console.log('Debug Payment Calculation:');
         console.log('Selected days:', selectedDays);
-        console.log('All hours:', Array.from(this.selectedDays.values()));
-        console.log('Valid days for full (>=7.5):', validDaysForFull);
-        console.log('Has low hours (<7.5):', hasLowHours);
+        console.log('All time values:', Array.from(this.selectedDays.values()));
+        console.log('Total minutes:', totalMinutes);
+        console.log('Total hours (decimal):', totalHours);
+        console.log('Valid days for full (>=7:30):', validDaysForFull);
+        console.log('Has low hours (<7:30):', hasLowHours);
         console.log('Working days in month:', workingDaysInMonth);
         console.log('Required days for full support:', requiredDaysForFull);
 
         // Basic support criteria: 4+ days AND 30+ hours
         const meetsBasicCriteria = selectedDays >= 4 && totalHours >= 30;
         
-        // Full support criteria: half of month's working days with 7.5+ hours each
+        // Full support criteria: half of month's working days with 7:30+ hours each
         const meetsFullCriteria = validDaysForFull >= requiredDaysForFull;
 
         console.log('Meets full criteria:', meetsFullCriteria);
@@ -378,6 +427,7 @@ class TransportSupportCalculator {
             meetsFullCriteria,
             selectedDays,
             totalHours,
+            totalMinutes,
             workingDaysInMonth,
             validDaysForFull,
             hasLowHours,
@@ -388,9 +438,14 @@ class TransportSupportCalculator {
     updateStats() {
         const stats = this.calculatePayment();
         
+        // Convert total hours to hours:minutes format for display
+        const totalHours = Math.floor(stats.totalHours);
+        const totalMinutes = Math.round((stats.totalHours - totalHours) * 60);
+        const timeDisplay = `${totalHours}:${totalMinutes.toString().padStart(2, '0')}`;
+        
         // Update statistics
         document.getElementById('selectedDays').textContent = stats.selectedDays;
-        document.getElementById('totalHours').textContent = stats.totalHours.toFixed(1);
+        document.getElementById('totalHours').textContent = timeDisplay;
         document.getElementById('workingDaysInMonth').textContent = stats.workingDaysInMonth;
         document.getElementById('validDaysForFull').textContent = stats.validDaysForFull;
 
@@ -426,15 +481,20 @@ class TransportSupportCalculator {
 
         const sortedDays = Array.from(this.selectedDays.entries()).sort();
         
-        container.innerHTML = sortedDays.map(([dateString, hours]) => {
+        container.innerHTML = sortedDays.map(([dateString, timeValue]) => {
             const date = new Date(dateString);
             const formattedDate = this.formatDateTurkish(date);
-            const isLowHours = hours < 7.5;
+            
+            // Convert decimal format to hours and minutes
+            const hours = Math.floor(timeValue);
+            const minutes = Math.floor((timeValue * 100) % 100);
+            const totalMinutes = (hours * 60) + minutes;
+            const isLowHours = totalMinutes < 450; // Less than 7 hours 30 minutes
             
             return `
                 <div class="selected-day-item ${isLowHours ? 'low-hours' : ''}">
                     <div class="day-date">${formattedDate}</div>
-                    <div class="day-hours">${hours} saat ${isLowHours ? '(Tam destek hesabına sayılmaz)' : ''}</div>
+                    <div class="day-hours">${hours}:${minutes.toString().padStart(2, '0')} ${isLowHours ? '(Tam destek hesabına sayılmaz)' : ''}</div>
                 </div>
             `;
         }).join('');
@@ -481,12 +541,17 @@ class TransportSupportCalculator {
             doc.setFontSize(10);
             const sortedDays = Array.from(this.selectedDays.entries()).sort();
             
-            sortedDays.forEach(([dateString, hours]) => {
+            sortedDays.forEach(([dateString, timeValue]) => {
                 const date = new Date(dateString);
                 const formattedDate = this.formatDateTurkish(date);
-                const isLowHours = hours < 7.5;
                 
-                doc.text(`${formattedDate}: ${hours} saat ${isLowHours ? '(Tam destek hesabına sayılmaz)' : ''}`, 20, yPosition);
+                // Convert decimal format to hours and minutes
+                const hours = Math.floor(timeValue);
+                const minutes = Math.floor((timeValue * 100) % 100);
+                const totalMinutes = (hours * 60) + minutes;
+                const isLowHours = totalMinutes < 450; // Less than 7 hours 30 minutes
+                
+                doc.text(`${formattedDate}: ${hours}:${minutes.toString().padStart(2, '0')} ${isLowHours ? '(Tam destek hesabına sayılmaz)' : ''}`, 20, yPosition);
                 yPosition += 8;
                 
                 if (yPosition > 280) {
@@ -521,13 +586,19 @@ class TransportSupportCalculator {
         
         // Add selected days
         const sortedDays = Array.from(this.selectedDays.entries()).sort();
-        sortedDays.forEach(([dateString, hours]) => {
+        sortedDays.forEach(([dateString, timeValue]) => {
             const date = new Date(dateString);
             const dayName = this.turkishDays[date.getDay()];
             const formattedDate = `${date.getDate()} ${this.turkishMonths[date.getMonth()]} ${date.getFullYear()}`;
-            const status = hours >= 7.5 ? 'Geçerli' : 'Tam destek hesabına sayılmaz';
             
-            worksheetData.push([formattedDate, dayName, hours, status]);
+            // Convert decimal format to hours and minutes
+            const hours = Math.floor(timeValue);
+            const minutes = Math.floor((timeValue * 100) % 100);
+            const totalMinutes = (hours * 60) + minutes;
+            const timeDisplay = `${hours}:${minutes.toString().padStart(2, '0')}`;
+            const status = totalMinutes >= 450 ? 'Geçerli' : 'Tam destek hesabına sayılmaz';
+            
+            worksheetData.push([formattedDate, dayName, timeDisplay, status]);
         });
         
         // Create workbook
