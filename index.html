@@ -10,8 +10,15 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
+    <!-- Confetti Animation Container -->
+    <div class="confetti-container" id="confettiContainer"></div>
+    
     <div class="container">
         <header class="header">
+            <div class="disclaimer-notice">
+                <i class="fas fa-info-circle"></i>
+                <span>Bu site resmi bilgi içermez. Çalışma arkadaşlarıma kolaylık olsun diye yapılmıştır.</span>
+            </div>
             <h1><i class="fas fa-truck"></i> Destek Hesaplama</h1>
             <p>Çalışma günlerini seçin ve saatlerinizi girin</p>
             <div class="developer-credit">
@@ -30,10 +37,10 @@
             </div>
         </header>
 
-        <!-- Calendar and Payment Layout -->
-        <div class="calendar-payment-layout">
-            <!-- Calendar Column -->
-            <div class="calendar-column">
+        <!-- Main 3-Column Layout -->
+        <div class="main-layout">
+            <!-- Left Column: Calendar -->
+            <div class="left-column">
                 <!-- Calendar Section -->
                 <div class="calendar-section">
                     <div class="calendar-header">
@@ -69,13 +76,14 @@
                         <li><span class="icon weekend-icon"></span> Hafta sonları (seçilemez)</li>
                         <li><span class="icon selected-icon"></span> Seçilen çalışma günleri</li>
                         <li><i class="fas fa-clock"></i> Her güne özel çalışma saati girebilirsiniz</li>
+                        <li><i class="fas fa-exclamation-triangle text-warning"></i> Minimum 1 saat girmelisiniz (0 saat girilemez)</li>
                         <li><i class="fas fa-info-circle text-info"></i> Tam destek için sadece 7.5+ saat günler sayılır</li>
                     </ul>
                 </div>
             </div>
 
-            <!-- Payment Column -->
-            <div class="payment-column">
+            <!-- Center Column: Payment & Calculations -->
+            <div class="center-column">
                 <!-- Statistics -->
                 <div class="card">
                     <h3><i class="fas fa-chart-bar"></i> İstatistikler</h3>
@@ -147,6 +155,17 @@
                         </div>
                     </div>
                 </div>
+            </div>
+
+            <!-- Right Column: Selected Days & Statistics -->
+            <div class="right-column">
+                <!-- Selected Days Detail -->
+                <div class="card">
+                    <h3><i class="fas fa-list"></i> Seçilen Günler Detayı</h3>
+                    <div id="selectedDaysDetail" class="selected-days-detail">
+                        <p class="no-selection">Henüz gün seçilmedi</p>
+                    </div>
+                </div>
 
                 <!-- Site Statistics -->
                 <div class="card">
@@ -209,16 +228,6 @@
                 </div>
             </div>
         </div>
-
-        <!-- Selected Days Display -->
-        <div class="selected-days-section">
-            <div class="card">
-                <h3><i class="fas fa-list"></i> Seçilen Günler Detayı</h3>
-                <div id="selectedDaysDetail" class="selected-days-detail">
-                    <p class="no-selection">Henüz gün seçilmedi</p>
-                </div>
-            </div>
-        </div>
     </div>
 
     <!-- Hour Input Modal -->
@@ -227,8 +236,9 @@
             <h3>Çalışma Saati Girin</h3>
             <p id="modalDate"></p>
             <div class="input-group">
-                <label for="hoursInput">Çalışma Saati (0-24):</label>
-                <input type="number" id="hoursInput" min="0" max="24" step="0.5" placeholder="8">
+                <label for="hoursInput">Çalışma Saati (1-24):</label>
+                <input type="number" id="hoursInput" min="1" max="24" step="0.5" placeholder="8">
+                <small class="input-help">Örnek: 8 (tam saat) veya 8.30 (8 saat 30 dakika). Minimum 1 saat.</small>
             </div>
             <div class="modal-buttons">
                 <button id="saveHours" class="btn-primary">Kaydet</button>

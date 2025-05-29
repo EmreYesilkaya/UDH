@@ -2,6 +2,7 @@ class TransportSupportCalculator {
     constructor() {
         this.currentDate = new Date(2025, 4, 1); // May 2025
         this.selectedDays = new Map(); // date string -> hours
+        this.previousQualificationState = null; // Track qualification state for confetti
         this.turkishMonths = [
             'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
             'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'
@@ -18,6 +19,14 @@ class TransportSupportCalculator {
         this.renderCalendar();
         this.bindEvents();
         this.updateStats();
+        
+        // Enable transitions after initial load
+        setTimeout(() => {
+            document.body.classList.add('transition-enabled');
+        }, 100);
+        
+        // Add test confetti button for development (remove in production)
+        // this.addTestConfettiButton();
     }
 
     generateHolidays() {
@@ -147,6 +156,106 @@ class TransportSupportCalculator {
                 this.saveHours();
             }
         });
+
+        // Prevent entering 0 in hours input
+        document.getElementById('hoursInput').addEventListener('input', (e) => {
+            const value = parseFloat(e.target.value);
+            if (value === 0) {
+                e.target.value = '';
+                e.target.classList.add('input-error');
+                
+                // Update help text temporarily
+                const helpText = e.target.parentNode.querySelector('.input-help');
+                const originalText = helpText.textContent;
+                helpText.textContent = '⚠️ 0 saat girilemez! En az 1 saat girmelisiniz.';
+                helpText.classList.add('input-error-text');
+                
+                setTimeout(() => {
+                    e.target.classList.remove('input-error');
+                    helpText.textContent = originalText;
+                    helpText.classList.remove('input-error-text');
+                }, 3000);
+            }
+        });
+
+        // Responsive layout handler for dynamic screen size changes
+        let resizeTimeout;
+        window.addEventListener('resize', () => {
+            // Debounce resize events for better performance
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {
+                this.handleResize();
+            }, 150);
+        });
+
+        // Handle orientation changes on mobile devices
+        window.addEventListener('orientationchange', () => {
+            setTimeout(() => {
+                this.handleResize();
+            }, 300); // Delay to allow orientation change to complete
+        });
+
+        // Handle visibility changes (when switching tabs or apps)
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) {
+                setTimeout(() => {
+                    this.handleResize();
+                }, 100);
+            }
+        });
+
+        // Initial responsive setup
+        this.handleResize();
+    }
+
+    handleResize() {
+        // Disable transitions during resize
+        document.body.classList.remove('transition-enabled');
+        
+        // Force layout recalculation
+        const mainLayout = document.querySelector('.main-layout');
+        if (mainLayout) {
+            // Temporarily hide to force reflow
+            mainLayout.style.display = 'none';
+            
+            // Force a reflow
+            mainLayout.offsetHeight;
+            
+            // Restore display
+            mainLayout.style.display = 'grid';
+            
+            // Add force reflow class
+            mainLayout.classList.add('force-reflow');
+        }
+
+        // Recalculate calendar layout if needed
+        this.updateCalendarLayout();
+        
+        // Update statistics display
+        this.updateStats();
+        
+        // Re-enable transitions after a short delay
+        setTimeout(() => {
+            document.body.classList.add('transition-enabled');
+            if (mainLayout) {
+                mainLayout.classList.remove('force-reflow');
+            }
+        }, 100);
+    }
+
+    updateCalendarLayout() {
+        const calendar = document.getElementById('calendar');
+        if (calendar) {
+            // Force calendar recalculation
+            const days = calendar.querySelectorAll('.calendar-day');
+            days.forEach(day => {
+                // Trigger reflow for each day
+                day.style.transform = 'scale(0.999)';
+                requestAnimationFrame(() => {
+                    day.style.transform = '';
+                });
+            });
+        }
     }
 
     renderCalendar() {
@@ -229,9 +338,13 @@ class TransportSupportCalculator {
             // Convert decimal format back to hours:minutes for display
             const displayHours = Math.floor(hours);
             const displayMinutes = Math.floor((hours * 100) % 100);
+            
+            // Format time display - show only hours if minutes are 00
+            const timeDisplay = displayMinutes === 0 ? `${displayHours}` : `${displayHours}:${displayMinutes.toString().padStart(2, '0')}`;
+            
             dayElement.innerHTML = `
                 <div>${date.getDate()}</div>
-                <div class="hours">${displayHours}:${displayMinutes.toString().padStart(2, '0')}</div>
+                <div class="hours">${timeDisplay}</div>
             `;
         } else {
             dayElement.textContent = date.getDate();
@@ -274,7 +387,13 @@ class TransportSupportCalculator {
     }
 
     saveHours() {
-        const input = document.getElementById('hoursInput').value;
+        let input = document.getElementById('hoursInput').value.trim();
+        
+        // If input doesn't contain a dot, add .00 for whole hours
+        if (!input.includes('.')) {
+            input = input + '.00';
+        }
+        
         const hours = parseFloat(input);
         
         console.log('Saving hours:', hours, 'Type:', typeof hours);
@@ -284,23 +403,41 @@ class TransportSupportCalculator {
             return;
         }
         
+        // Check for zero hours
+        if (hours === 0) {
+            alert('0 saat girilemez. Lütfen en az 1 saat girin.');
+            return;
+        }
+        
+        // Check for negative hours
+        if (hours < 0) {
+            alert('Negatif saat değeri girilemez. Lütfen pozitif bir değer girin.');
+            return;
+        }
+        
         // Check format: X.YZ where X is hours, YZ is minutes (00-59)
         const parts = input.split('.');
         if (parts.length !== 2 || parts[1].length !== 2) {
-            alert('Lütfen saat formatını X.YZ şeklinde girin (örnek: 8.30 = 8 saat 30 dakika).');
+            alert('Lütfen saat formatını X.YZ şeklinde girin (örnek: 8.30 = 8 saat 30 dakika) veya tam saat için sadece sayı yazın (örnek: 8).');
             return;
         }
         
         const hourPart = parseInt(parts[0]);
         const minutePart = parseInt(parts[1]);
         
+        // Additional validation for hour part
+        if (isNaN(hourPart) || isNaN(minutePart)) {
+            alert('Lütfen geçerli sayısal değerler girin.');
+            return;
+        }
+        
         if (minutePart < 0 || minutePart > 59) {
             alert('Dakika değeri 00-59 arasında olmalıdır.');
             return;
         }
         
-        if (hourPart < 0 || hourPart > 24) {
-            alert('Saat değeri 0-24 arasında olmalıdır.');
+        if (hourPart <= 0 || hourPart > 24) {
+            alert('Saat değeri 1-24 arasında olmalıdır. 0 saat girilemez.');
             return;
         }
 
@@ -441,7 +578,9 @@ class TransportSupportCalculator {
         // Convert total hours to hours:minutes format for display
         const totalHours = Math.floor(stats.totalHours);
         const totalMinutes = Math.round((stats.totalHours - totalHours) * 60);
-        const timeDisplay = `${totalHours}:${totalMinutes.toString().padStart(2, '0')}`;
+        
+        // Format time display - show only hours if minutes are 00
+        const timeDisplay = totalMinutes === 0 ? `${totalHours}` : `${totalHours}:${totalMinutes.toString().padStart(2, '0')}`;
         
         // Update statistics
         document.getElementById('selectedDays').textContent = stats.selectedDays;
@@ -468,6 +607,27 @@ class TransportSupportCalculator {
         
         lowHourWarning.style.display = stats.hasLowHours && stats.selectedDays > 0 ? 'block' : 'none';
 
+        // Check for qualification and trigger confetti if newly qualified
+        const currentQualificationLevel = stats.meetsFullCriteria ? 'full' : (stats.meetsBasicCriteria ? 'basic' : 'none');
+        const previousLevel = this.previousQualificationState || 'none';
+        
+        // Trigger confetti when:
+        // 1. Moving from no qualification to any qualification
+        // 2. Moving from basic to full qualification
+        const shouldTriggerConfetti = 
+            (previousLevel === 'none' && currentQualificationLevel !== 'none') ||
+            (previousLevel === 'basic' && currentQualificationLevel === 'full');
+        
+        if (shouldTriggerConfetti) {
+            // Add a small delay to let the UI update first
+            setTimeout(() => {
+                triggerConfetti();
+            }, 300);
+        }
+        
+        // Update the previous state
+        this.previousQualificationState = currentQualificationLevel;
+
         this.updateSelectedDaysDisplay();
     }
 
@@ -490,14 +650,57 @@ class TransportSupportCalculator {
             const minutes = Math.floor((timeValue * 100) % 100);
             const totalMinutes = (hours * 60) + minutes;
             const isLowHours = totalMinutes < 450; // Less than 7 hours 30 minutes
+            const isBelow8Hours = totalMinutes < 480; // Less than 8 hours
+            
+            // Format time display - show only hours if minutes are 00
+            const timeDisplay = minutes === 0 ? `${hours}` : `${hours}:${minutes.toString().padStart(2, '0')}`;
+            
+            const statusClass = isLowHours ? 'low-hours' : (isBelow8Hours ? 'below-8-hours' : '');
+            const statusText = isLowHours ? '(Tam destek hesabına sayılmaz)' : 
+                              isBelow8Hours ? '(8 saat altı)' : '(Tam destek)';
             
             return `
-                <div class="selected-day-item ${isLowHours ? 'low-hours' : ''}">
+                <div class="selected-day-item ${statusClass}" data-date="${dateString}">
                     <div class="day-date">${formattedDate}</div>
-                    <div class="day-hours">${hours}:${minutes.toString().padStart(2, '0')} ${isLowHours ? '(Tam destek hesabına sayılmaz)' : ''}</div>
+                    <div class="day-hours">${timeDisplay} ${statusText}</div>
+                    <div class="quick-actions">
+                        <button class="quick-action-btn edit-btn" onclick="calculator.editDayHours('${dateString}')" title="Düzenle">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="quick-action-btn delete-btn" onclick="calculator.removeDayQuick('${dateString}')" title="Sil">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
                 </div>
             `;
         }).join('');
+    }
+
+    // Quick edit function for selected days
+    editDayHours(dateString) {
+        const currentHours = this.selectedDays.get(dateString) || 8;
+        const date = new Date(dateString);
+        this.openModal(date, currentHours);
+    }
+
+    // Quick remove function for selected days  
+    removeDayQuick(dateString) {
+        this.selectedDays.delete(dateString);
+        this.updateCalendarDay(dateString);
+        this.updateStats();
+        this.updateSelectedDaysDisplay();
+    }
+
+    // Helper function to update a specific calendar day
+    updateCalendarDay(dateString) {
+        const dayElement = document.querySelector(`[data-date="${dateString}"]`);
+        if (dayElement) {
+            dayElement.classList.remove('selected', 'low-hours', 'below-8-hours');
+            const hoursSpan = dayElement.querySelector('.hours');
+            if (hoursSpan) {
+                hoursSpan.remove();
+            }
+        }
     }
 
     exportPDF() {
@@ -551,7 +754,10 @@ class TransportSupportCalculator {
                 const totalMinutes = (hours * 60) + minutes;
                 const isLowHours = totalMinutes < 450; // Less than 7 hours 30 minutes
                 
-                doc.text(`${formattedDate}: ${hours}:${minutes.toString().padStart(2, '0')} ${isLowHours ? '(Tam destek hesabına sayılmaz)' : ''}`, 20, yPosition);
+                // Format time display - show only hours if minutes are 00
+                const timeDisplay = minutes === 0 ? `${hours}` : `${hours}:${minutes.toString().padStart(2, '0')}`;
+                
+                doc.text(`${formattedDate}: ${timeDisplay} ${isLowHours ? '(Tam destek hesabına sayılmaz)' : ''}`, 20, yPosition);
                 yPosition += 8;
                 
                 if (yPosition > 280) {
@@ -595,7 +801,9 @@ class TransportSupportCalculator {
             const hours = Math.floor(timeValue);
             const minutes = Math.floor((timeValue * 100) % 100);
             const totalMinutes = (hours * 60) + minutes;
-            const timeDisplay = `${hours}:${minutes.toString().padStart(2, '0')}`;
+            
+            // Format time display - show only hours if minutes are 00
+            const timeDisplay = minutes === 0 ? `${hours}` : `${hours}:${minutes.toString().padStart(2, '0')}`;
             const status = totalMinutes >= 450 ? 'Geçerli' : 'Tam destek hesabına sayılmaz';
             
             worksheetData.push([formattedDate, dayName, timeDisplay, status]);
@@ -616,6 +824,29 @@ class TransportSupportCalculator {
         XLSX.utils.book_append_sheet(wb, ws, 'Ulaştırma Desteği');
         XLSX.writeFile(wb, `ulastirma-destegi-${monthYear.replace(' ', '-')}.xlsx`);
     }
+
+    // Test function for confetti (development only)
+    /*
+    addTestConfettiButton() {
+        const testButton = document.createElement('button');
+        testButton.innerHTML = '🎉 Test Confetti';
+        testButton.style.cssText = `
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            z-index: 1000;
+            font-size: 12px;
+        `;
+        testButton.onclick = () => triggerConfetti();
+        document.body.appendChild(testButton);
+    }
+    */
 }
 
 // Visitor tracking functionality
@@ -713,6 +944,130 @@ class VisitorTracker {
             }, 500);
         }
     }
+}
+
+// Confetti Animation Functions
+function createConfetti() {
+    const confettiContainer = document.getElementById('confettiContainer');
+    
+    // Clear any existing confetti
+    confettiContainer.innerHTML = '';
+    
+    // Create 25 confetti pieces with different shapes
+    for (let i = 0; i < 25; i++) {
+        const confetti = document.createElement('div');
+        confetti.className = 'confetti';
+        
+        // Add random shapes
+        const shapes = ['', 'circle', 'square'];
+        const randomShape = shapes[Math.floor(Math.random() * shapes.length)];
+        if (randomShape) {
+            confetti.classList.add(randomShape);
+        }
+        
+        // Random properties for more natural effect
+        const colors = ['#e74c3c', '#3498db', '#2ecc71', '#f39c12', '#9b59b6', '#e67e22', '#1abc9c', '#34495e', '#e91e63', '#ff5722', '#607d8b', '#795548', '#009688', '#ff9800', '#673ab7'];
+        const randomColor = colors[Math.floor(Math.random() * colors.length)];
+        const randomLeft = Math.random() * 100;
+        const randomDelay = Math.random() * 2;
+        const randomDuration = 2.5 + Math.random() * 2;
+        const randomRotation = Math.random() * 360;
+        const randomSize = 8 + Math.random() * 6; // 8-14px size variation
+        
+        confetti.style.backgroundColor = randomColor;
+        confetti.style.left = randomLeft + '%';
+        confetti.style.animationDelay = randomDelay + 's';
+        confetti.style.animationDuration = randomDuration + 's';
+        confetti.style.transform = `rotate(${randomRotation}deg)`;
+        confetti.style.width = randomSize + 'px';
+        confetti.style.height = randomSize + 'px';
+        
+        // For triangles and stars, set the border color instead
+        if (randomShape === 'triangle') {
+            confetti.style.borderBottomColor = randomColor;
+            confetti.style.backgroundColor = 'transparent';
+        }
+        
+        confettiContainer.appendChild(confetti);
+    }
+    
+    // Show the confetti container
+    confettiContainer.style.display = 'block';
+    
+    // Hide confetti after animation completes
+    setTimeout(() => {
+        confettiContainer.style.display = 'none';
+        confettiContainer.innerHTML = '';
+    }, 6000);
+}
+
+function triggerConfetti() {
+    createConfetti();
+    
+    // Add celebratory message to console
+    console.log('🎉 Tebrikler! Ulaştırma desteği alabilirsiniz! 🎉');
+    
+    // Show success message with current qualification level
+    showSuccessMessage();
+}
+
+function showSuccessMessage() {
+    // Get current qualification level for the message
+    const paymentType = document.getElementById('paymentType').textContent;
+    const amount = document.getElementById('paymentAmount').textContent;
+    
+    let message = '';
+    let gradient = '';
+    
+    if (paymentType === 'Tam Destek') {
+        message = `🎉 Tam Destek Kazandınız! ${amount}`;
+        gradient = 'linear-gradient(135deg, #f39c12, #e67e22)'; // Gold gradient for full support
+    } else if (paymentType === 'Temel Destek') {
+        message = `✅ Temel Destek Kazandınız! ${amount}`;
+        gradient = 'linear-gradient(135deg, #2ecc71, #27ae60)'; // Green gradient for basic support
+    } else {
+        message = '🎉 Tebrikler! Destek alabilirsiniz!';
+        gradient = 'linear-gradient(135deg, #3498db, #2980b9)'; // Blue gradient as fallback
+    }
+    
+    // Create a temporary success message
+    const successDiv = document.createElement('div');
+    successDiv.innerHTML = `<i class="fas fa-check-circle"></i> ${message}`;
+    successDiv.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: ${gradient};
+        color: white;
+        padding: 15px 20px;
+        border-radius: 12px;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        z-index: 10000;
+        font-weight: 600;
+        font-size: 14px;
+        transform: translateX(400px);
+        transition: all 0.5s ease;
+        max-width: 300px;
+        text-align: center;
+        border: 2px solid rgba(255, 255, 255, 0.2);
+    `;
+    
+    document.body.appendChild(successDiv);
+    
+    // Slide in
+    setTimeout(() => {
+        successDiv.style.transform = 'translateX(0)';
+    }, 100);
+    
+    // Slide out and remove
+    setTimeout(() => {
+        successDiv.style.transform = 'translateX(400px)';
+        setTimeout(() => {
+            if (successDiv.parentNode) {
+                successDiv.parentNode.removeChild(successDiv);
+            }
+        }, 500);
+    }, 4000);
 }
 
 // Initialize the application
